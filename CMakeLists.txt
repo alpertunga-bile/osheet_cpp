@@ -17,7 +17,12 @@ add_executable(${PROJECT_NAME} main.cpp
         metadata.hpp
         metadata.cpp
         indicator_utils.hpp
-        indicator_utils.cpp)
+        indicator_utils.cpp
+        ffmpeg_utils.hpp
+        ffmpeg_utils.cpp
+        tiles.hpp
+        tiles.cpp
+        )
 target_include_directories(${PROJECT_NAME} PRIVATE ${FFMPEG_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE
         unofficial::skia::skia

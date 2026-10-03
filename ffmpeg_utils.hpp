@@ -37,7 +37,7 @@ using SwsCtxUniqType =
 
 #define CREATE_UNIQUE_BUILDER(__valname__, __value__, __type__, __func__)      \
   std::unique_ptr<__type__, decltype(&__func__)> __valname__(__value__,        \
-                                                             &__func__);
+                                                             &__func__)
 
 #define CREATE_FMT_UNIQUE(__valname__, __value__)                              \
   CREATE_UNIQUE_BUILDER(                                                       \

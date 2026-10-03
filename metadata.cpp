@@ -13,17 +13,10 @@ extern "C"
 #include <memory>
 #include <print>
 
+#include "ffmpeg_utils.hpp"
 #include "indicator_utils.hpp"
 
 namespace osheet {
-
-void
-close_avformat_context(AVFormatContext* fmt)
-{
-  if (nullptr != fmt) {
-    avformat_close_input(&fmt);
-  }
-}
 
 auto
 fill_video_metadata(VideoMetadata&           vmt,
@@ -94,8 +87,7 @@ get_metadata(std::string video_filepath, Metadata& metadata) -> bool
     spinner, "Video file is opened", SpinnerStatus::IN_PROGRESS);
   osheet::iter_spinner(spinner);
 
-  std::unique_ptr<AVFormatContext, decltype(&close_avformat_context)> fmt(
-    temp_fmt, &close_avformat_context);
+  CREATE_FMT_UNIQUE(fmt, temp_fmt);
 
   osheet::iter_spinner(spinner, 5);
 

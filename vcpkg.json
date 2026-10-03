@@ -1,0 +1,29 @@
+{
+  "name": "osheet-cpp",
+  "version": "0.1.0",
+  "description": "Video contact sheet generator: FFmpeg decode + Skia render",
+  "dependencies": [
+    {
+      "name": "skia",
+      "default-features": false,
+      "features": [
+        "jpeg",
+        "png",
+        "freetype",
+        "fontconfig"
+      ]
+    },
+    {
+      "name": "ffmpeg",
+      "default-features": false,
+      "features": [
+        "avformat",
+        "avcodec",
+        "swscale"
+      ]
+    },
+    {
+      "name": "indicators"
+    }
+  ]
+}

@@ -22,6 +22,8 @@ add_executable(${PROJECT_NAME} main.cpp
         ffmpeg_utils.cpp
         tiles.hpp
         tiles.cpp
+        sheet.hpp
+        sheet.cpp
         )
 target_include_directories(${PROJECT_NAME} PRIVATE ${FFMPEG_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE

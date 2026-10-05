@@ -256,7 +256,7 @@ extract_tiles(std::string video_filepath,
     }
 
     pbar.set_values(
-      "Extracting tiles", i + 1, osheet::ProgressBar::Status::IN_PROGRESS);
+      "Extracting tiles", i, osheet::ProgressBar::Status::IN_PROGRESS);
 
     tiles.push_back(tile);
   }

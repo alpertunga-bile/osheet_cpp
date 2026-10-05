@@ -11,7 +11,7 @@
 auto
 main(int argc, char* argv[]) -> int
 {
-  argparse::ArgumentParser program("osheet_cpp");
+  argparse::ArgumentParser program("osheet_cpp", "0.1.0");
 
   program.add_argument("-i", "--input")
     .required()

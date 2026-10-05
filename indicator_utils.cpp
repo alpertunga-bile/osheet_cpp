@@ -98,7 +98,7 @@ ProgressBar::set_values(const char*         text,
       pbar.set_option(
         indicators::option::PostfixText{ std::format("✔ {}", text) });
 
-      pbar.mark_as_completed();
+      pbar.set_progress(100);
 
       indicators::show_console_cursor(true);
       break;
@@ -108,7 +108,7 @@ ProgressBar::set_values(const char*         text,
       pbar.set_option(
         indicators::option::PrefixText{ std::format("✖ {}", text) });
 
-      pbar.mark_as_completed();
+      pbar.set_progress(100);
 
       indicators::show_console_cursor(true);
       break;

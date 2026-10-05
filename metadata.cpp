@@ -20,20 +20,25 @@ namespace osheet {
 
 auto
 fill_video_metadata(VideoMetadata&           vmt,
+                    FmtUniqType&             fmt,
                     const AVStream*          st,
                     const AVCodecParameters* pt) -> void
 {
   const char*    media_type = av_get_media_type_string(pt->codec_type);
   const AVCodec* dec        = avcodec_find_decoder(pt->codec_id);
+  double         duration =
+    fmt->duration != AV_NOPTS_VALUE
+      ? static_cast<double>(fmt->duration) / AV_TIME_BASE
+      : static_cast<double>(st->duration) * av_q2d(st->time_base);
 
   vmt.codec_name = avcodec_get_name(pt->codec_id);
-  vmt.profile    = dec ? av_get_profile_name(dec, pt->profile) : "unknown";
-  vmt.pix_fmt    = av_get_pix_fmt_name(static_cast<AVPixelFormat>(pt->format));
+  vmt.profile = dec ? av_get_profile_name(dec, pt->profile) : "unknown profile";
+  vmt.pix_fmt = av_get_pix_fmt_name(static_cast<AVPixelFormat>(pt->format));
   vmt.color_space =
     av_color_space_name(static_cast<AVColorSpace>(pt->color_space));
   vmt.width      = pt->width;
   vmt.height     = pt->height;
-  vmt.duration   = static_cast<double>(st->duration) * av_q2d(st->time_base);
+  vmt.duration   = duration;
   vmt.frame_rate = 0 == st->r_frame_rate.den
                      ? 0.0f
                      : static_cast<float>(st->r_frame_rate.num) /
@@ -50,46 +55,44 @@ fill_audio_metadata(AudioMetadata&           amt,
   char layout[64];
   av_channel_layout_describe(&pt->ch_layout, layout, sizeof(layout));
 
-  amt.codec_name  = avcodec_get_name(pt->codec_id);
-  amt.profile     = dec ? av_get_profile_name(dec, pt->profile) : "unknown";
-  amt.sample_rate = pt->sample_rate;
-  amt.nb_channels = pt->ch_layout.nb_channels;
-  amt.ch_layout   = layout;
+  amt.codec_name      = avcodec_get_name(pt->codec_id);
+  const char* profile = dec ? av_get_profile_name(dec, pt->profile) : nullptr;
+  amt.profile         = profile ? std::string(profile) : "unknown profile";
+  amt.sample_rate     = pt->sample_rate;
+  amt.nb_channels     = pt->ch_layout.nb_channels;
+  amt.ch_layout       = layout;
 }
 
 auto
 get_metadata(std::string video_filepath, Metadata& metadata) -> bool
 {
-  indicators::ProgressSpinner spinner;
-  osheet::create_spinner(spinner, "Starting collecting metadata");
+  osheet::Spinner spinner;
+  spinner.init("Starting collecting metadata");
 
-  osheet::iter_spinner(spinner);
+  spinner.tick();
 
   if (!std::filesystem::exists(video_filepath)) {
-    osheet::set_spinner_values(
-      spinner, "File doesnot exist", SpinnerStatus::FAILED_FINISHED);
+    spinner.set_values("File doesnot exist", Spinner::Status::FAILED_FINISHED);
 
     return false;
   }
 
-  osheet::iter_spinner(spinner);
+  spinner.tick();
 
   AVFormatContext* temp_fmt = nullptr;
 
   if (avformat_open_input(&temp_fmt, video_filepath.c_str(), NULL, NULL) < 0) {
-    osheet::set_spinner_values(
-      spinner, "File cannot open", SpinnerStatus::FAILED_FINISHED);
+    spinner.set_values("File cannot open", Spinner::Status::FAILED_FINISHED);
 
     return false;
   }
 
-  osheet::set_spinner_values(
-    spinner, "Video file is opened", SpinnerStatus::IN_PROGRESS);
-  osheet::iter_spinner(spinner);
+  spinner.set_values("Video file is opened", Spinner::Status::IN_PROGRESS);
+  spinner.tick();
 
   CREATE_FMT_UNIQUE(fmt, temp_fmt);
 
-  osheet::iter_spinner(spinner, 5);
+  spinner.tick(5);
 
   avformat_find_stream_info(fmt.get(), nullptr);
 
@@ -99,24 +102,24 @@ get_metadata(std::string video_filepath, Metadata& metadata) -> bool
 
     switch (pt->codec_type) {
       case AVMEDIA_TYPE_VIDEO:
-        osheet::set_spinner_values(
-          spinner, "Collecting video metadata", SpinnerStatus::IN_PROGRESS);
-        fill_video_metadata(metadata.video, st, pt);
+        spinner.set_values("Collecting video metadata",
+                           Spinner::Status::IN_PROGRESS);
+        fill_video_metadata(metadata.video, fmt, st, pt);
+        spinner.tick();
         break;
       case AVMEDIA_TYPE_AUDIO:
-        osheet::set_spinner_values(
-          spinner, "Collecting audio metadata", SpinnerStatus::IN_PROGRESS);
+        spinner.set_values("Collecting audio metadata",
+                           Spinner::Status::IN_PROGRESS);
         fill_audio_metadata(metadata.audio, st, pt);
+        spinner.tick();
         break;
       default:
         break;
     }
-
-    osheet::iter_spinner(spinner, 30);
   }
 
-  osheet::set_spinner_values(
-    spinner, "Metadata values are collected", SpinnerStatus::SUCCESS_FINISHED);
+  spinner.set_values("Metadata values are collected",
+                     Spinner::Status::SUCCESS_FINISHED);
 
   return true;
 }

@@ -12,6 +12,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(FFMPEG REQUIRED)                  # module: share/ffmpeg/FindFFMPEG.cmake
 find_package(unofficial-skia CONFIG REQUIRED)  # target: unofficial::skia::skia
 find_package(indicators CONFIG REQUIRED)
+find_package(argparse CONFIG REQUIRED)
 
 add_executable(${PROJECT_NAME} main.cpp
         metadata.hpp
@@ -30,4 +31,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         unofficial::skia::skia
         ${FFMPEG_LIBRARIES}        # avutil, avcodec, avformat, swscale, ... (full paths)
         indicators::indicators
+        argparse::argparse
 )

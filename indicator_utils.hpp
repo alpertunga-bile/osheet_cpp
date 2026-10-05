@@ -4,28 +4,25 @@
 #include "indicators/progress_spinner.hpp"
 #include <cstdint>
 
-enum class SpinnerStatus : uint8_t
-{
-  STARTED = 0,
-  IN_PROGRESS,
-  SUCCESS_FINISHED,
-  FAILED_FINISHED
-};
-
 namespace osheet {
 
-auto
-create_spinner(indicators::ProgressSpinner& spinner, const char* text) -> void;
+struct Spinner
+{
+  enum class Status : uint8_t
+  {
+    STARTED = 0,
+    IN_PROGRESS,
+    SUCCESS_FINISHED,
+    FAILED_FINISHED
+  };
 
-auto
-set_spinner_values(indicators::ProgressSpinner& spinner,
-                   const char*                  text,
-                   SpinnerStatus                status) -> void;
+  auto init(const char* text) -> void;
+  auto set_values(const char* text, Spinner::Status status) -> void;
+  auto tick(int loop_count = 10, int64_t ms_sleep = 40) -> void;
 
-auto
-iter_spinner(indicators::ProgressSpinner& spinner,
-             int                          loop_count = 10,
-             int64_t                      ms_sleep   = 40) -> void;
+  Spinner::Status             current_status;
+  indicators::ProgressSpinner spinner;
+};
 
 }
 

@@ -3,49 +3,44 @@
 namespace osheet {
 
 auto
-create_spinner(indicators::ProgressSpinner& spinner, const char* text) -> void
+Spinner::init(const char* text) -> void
 {
-  set_spinner_values(spinner, text, SpinnerStatus::STARTED);
+  set_values(text, Spinner::Status::STARTED);
 }
 
 auto
-set_spinner_values(indicators::ProgressSpinner& spinner,
-                   const char*                  text,
-                   SpinnerStatus                status) -> void
+Spinner::set_values(const char* text, Spinner::Status status) -> void
 {
   spinner.set_option(indicators::option::PostfixText{ text });
   spinner.set_option(indicators::option::ShowPercentage{ false });
 
   switch (status) {
-    case SpinnerStatus::IN_PROGRESS:
-    case SpinnerStatus::STARTED:
+    case Spinner::Status::IN_PROGRESS:
+    case Spinner::Status::STARTED:
       spinner.set_option(
         indicators::option::ForegroundColor{ indicators::Color::yellow });
       break;
-    case SpinnerStatus::SUCCESS_FINISHED:
+    case Spinner::Status::SUCCESS_FINISHED:
       spinner.set_option(
         indicators::option::ForegroundColor{ indicators::Color::green });
       spinner.set_option(indicators::option::PrefixText{ "✔" });
       spinner.set_option(indicators::option::ShowSpinner{ false });
       spinner.mark_as_completed();
       break;
-    case SpinnerStatus::FAILED_FINISHED:
+    case Spinner::Status::FAILED_FINISHED:
       spinner.set_option(
         indicators::option::ForegroundColor{ indicators::Color::red });
       spinner.set_option(indicators::option::PrefixText{ "✖" });
       spinner.set_option(indicators::option::ShowSpinner{ false });
       spinner.mark_as_completed();
       break;
-
     default:
       break;
   }
 }
 
 auto
-iter_spinner(indicators::ProgressSpinner& spinner,
-             int                          loop_count,
-             int64_t                      ms_sleep) -> void
+Spinner::tick(int loop_count, int64_t ms_sleep) -> void
 {
   for (int i = 0; i < loop_count; ++i) {
     spinner.tick();

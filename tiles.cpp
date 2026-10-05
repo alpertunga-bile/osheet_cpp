@@ -10,13 +10,12 @@ extern "C"
 #include "ffmpeg_utils.hpp"
 
 #include <filesystem>
-#include <format>
-#include <memory>
+#include <ranges>
 
 namespace osheet {
 
 [[nodiscard]] auto
-save_tile_png(const char* path, AVFrame* src) -> bool
+copy_tile_data(std::vector<uint8_t>& tile, FrameUniqType& src) -> bool
 {
   const AVCodec* encoder = avcodec_find_encoder(AV_CODEC_ID_PNG);
 
@@ -38,7 +37,7 @@ save_tile_png(const char* path, AVFrame* src) -> bool
     return false;
   }
 
-  if (avcodec_send_frame(enc.get(), src) < 0) {
+  if (avcodec_send_frame(enc.get(), src.get()) < 0) {
     return false;
   }
 
@@ -48,16 +47,15 @@ save_tile_png(const char* path, AVFrame* src) -> bool
 
   CREATE_PACKET_UNIQUE(pkt, av_packet_alloc());
 
-  FILE* out = std::fopen(path, "wb"); // "-y" → overwrite
-  if (out == nullptr)
-    return false;
-
   while (avcodec_receive_packet(enc.get(), pkt.get()) >= 0) {
-    std::fwrite(pkt->data, 1, static_cast<std::size_t>(pkt->size), out);
+    std::vector<uint8_t> pkt_vec(pkt->data,
+                                 pkt->data + static_cast<size_t>(pkt->size));
+    tile.insert_range(tile.end(), pkt_vec);
+
     av_packet_unref(pkt.get());
   }
 
-  return std::fclose(out) == 0;
+  return true;
 }
 
 [[nodiscard]] auto
@@ -149,12 +147,12 @@ get_wanted_frame(FrameUniqType&    tile,
 }
 
 [[nodiscard]] auto
-extract_save_tile(FmtUniqType&    fmt,
-                  const char*     output_path,
-                  const AVStream* st,
-                  const int       vidx,
-                  const float     timestamp,
-                  const int       wanted_width) -> bool
+extract_tile(FmtUniqType&          fmt,
+             std::vector<uint8_t>& output_tile,
+             const AVStream*       st,
+             const int             vidx,
+             const float           timestamp,
+             const int             wanted_width) -> bool
 {
   const int64_t target =
     av_rescale_q_rnd(static_cast<int64_t>(timestamp * 1000.0),
@@ -192,23 +190,22 @@ extract_save_tile(FmtUniqType&    fmt,
     return false;
   }
 
-  return save_tile_png(output_path, rgb.get()) >= 0;
+  return copy_tile_data(output_tile, rgb) >= 0;
 }
 
 auto
 extract_tiles(std::string video_filepath,
               uint16_t    total_tiles,
-              uint16_t    tile_width,
-              std::string output_folder) -> bool
+              uint16_t    tile_width) -> std::vector<std::vector<uint8_t>>
 {
   if (!std::filesystem::exists(video_filepath)) {
-    return false;
+    return {};
   }
 
   AVFormatContext* temp_fmt = nullptr;
 
   if (avformat_open_input(&temp_fmt, video_filepath.c_str(), NULL, NULL) < 0) {
-    return false;
+    return {};
   }
 
   std::unique_ptr<AVFormatContext, decltype(&close_avformat_context)> fmt(
@@ -220,30 +217,29 @@ extract_tiles(std::string video_filepath,
     av_find_best_stream(fmt.get(), AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
 
   if (0 > vidx) {
-    return false;
+    return {};
   }
 
   const AVStream* st = fmt->streams[vidx];
-  float duration     = static_cast<float>(st->duration) * av_q2d(st->time_base);
+  float duration = fmt->duration != AV_NOPTS_VALUE
+                     ? static_cast<float>(fmt->duration) / AV_TIME_BASE
+                     : static_cast<float>(st->duration) * av_q2d(st->time_base);
 
-  if (!std::filesystem::exists(output_folder)) {
-    if (!std::filesystem::create_directories(output_folder)) {
-      return false;
-    }
-  }
+  std::vector<std::vector<uint8_t>> tiles;
+  tiles.reserve(total_tiles);
 
   for (int i = 0; i < total_tiles; ++i) {
-    const float timestamp = duration * static_cast<float>(i) / total_tiles;
-    std::string tile_filepath =
-      std::format("{}/tile_{:03d}.png", output_folder, i);
+    std::vector<uint8_t> tile = {};
+    const float timestamp     = duration * static_cast<float>(i) / total_tiles;
 
-    if (false ==
-        extract_save_tile(
-          fmt, tile_filepath.c_str(), st, vidx, timestamp, tile_width)) {
-      return false;
+    if (false == extract_tile(fmt, tile, st, vidx, timestamp, tile_width)) {
+      return {};
     }
+
+    tiles.push_back(tile);
   }
 
-  return true;
+  return tiles;
 }
+
 }

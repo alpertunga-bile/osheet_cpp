@@ -8,6 +8,7 @@ extern "C"
 }
 
 #include "ffmpeg_utils.hpp"
+#include "indicator_utils.hpp"
 
 #include <filesystem>
 #include <ranges>
@@ -198,13 +199,23 @@ extract_tiles(std::string video_filepath,
               uint16_t    total_tiles,
               uint16_t    tile_width) -> std::vector<std::vector<uint8_t>>
 {
+  osheet::ProgressBar pbar;
+  pbar.init("Starting extraction", total_tiles);
+
   if (!std::filesystem::exists(video_filepath)) {
+    pbar.set_values(
+      "File doesnot exist", 100, osheet::ProgressBar::Status::FAILED_FINISHED);
+
     return {};
   }
 
   AVFormatContext* temp_fmt = nullptr;
 
   if (avformat_open_input(&temp_fmt, video_filepath.c_str(), NULL, NULL) < 0) {
+    pbar.set_values("Cannot open the video file",
+                    100,
+                    osheet::ProgressBar::Status::FAILED_FINISHED);
+
     return {};
   }
 
@@ -217,6 +228,10 @@ extract_tiles(std::string video_filepath,
     av_find_best_stream(fmt.get(), AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
 
   if (0 > vidx) {
+    pbar.set_values("Cannot find video stream",
+                    100,
+                    osheet::ProgressBar::Status::FAILED_FINISHED);
+
     return {};
   }
 
@@ -233,11 +248,22 @@ extract_tiles(std::string video_filepath,
     const float timestamp     = duration * static_cast<float>(i) / total_tiles;
 
     if (false == extract_tile(fmt, tile, st, vidx, timestamp, tile_width)) {
+      pbar.set_values("Extracting one tile is failed",
+                      100,
+                      osheet::ProgressBar::Status::FAILED_FINISHED);
+
       return {};
     }
 
+    pbar.set_values(
+      "Extracting tiles", i + 1, osheet::ProgressBar::Status::IN_PROGRESS);
+
     tiles.push_back(tile);
   }
+
+  pbar.set_values("Extracting tiles is completed",
+                  100,
+                  osheet::ProgressBar::Status::SUCCESS_FINISHED);
 
   return tiles;
 }

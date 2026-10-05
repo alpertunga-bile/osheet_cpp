@@ -156,7 +156,7 @@ Sheet::draw_tiles(const std::vector<std::vector<uint8_t>>& png_tiles,
 
   for (uint8_t i = 0; i < total_tiles; ++i) {
     SkScalar column = static_cast<SkScalar>(i % total_column);
-    SkScalar row    = static_cast<SkScalar>(i / total_row);
+    SkScalar row    = static_cast<SkScalar>(i / total_column);
 
     sk_sp<SkData> data =
       SkData::MakeWithCopy(png_tiles[i].data(), png_tiles[i].size());

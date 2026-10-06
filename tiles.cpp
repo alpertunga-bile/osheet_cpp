@@ -10,8 +10,10 @@ extern "C"
 #include "ffmpeg_utils.hpp"
 #include "indicator_utils.hpp"
 
+#include <algorithm>
 #include <filesystem>
 #include <ranges>
+#include <utility>
 
 namespace osheet {
 
@@ -120,7 +122,9 @@ get_wanted_frame(FrameUniqType&    tile,
     av_packet_unref(pkt.get());
 
     if (sr < 0 && sr != EAGAIN) {
-      return false;
+      avcodec_receive_frame(dec.get(), nullptr);
+
+      continue;
     }
 
     while (true) {
@@ -191,7 +195,7 @@ extract_tile(FmtUniqType&          fmt,
     return false;
   }
 
-  return copy_tile_data(output_tile, rgb) >= 0;
+  return copy_tile_data(output_tile, rgb);
 }
 
 auto
@@ -243,7 +247,7 @@ extract_tiles(std::string video_filepath,
   std::vector<std::vector<uint8_t>> tiles;
   tiles.reserve(total_tiles);
 
-  for (int i = 0; i < total_tiles; ++i) {
+  for (uint16_t i = 0; i < total_tiles; ++i) {
     std::vector<uint8_t> tile = {};
     const float timestamp     = duration * static_cast<float>(i) / total_tiles;
 

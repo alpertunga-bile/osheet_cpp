@@ -10,12 +10,13 @@
 
 #include "skia/ports/SkFontMgr_directory.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <format>
-#include <memory>
-#include <string>
-
 #include <fstream>
+#include <memory>
+#include <print>
+#include <string>
 
 namespace osheet {
 
@@ -95,7 +96,7 @@ Sheet::save(std::string out_path) -> bool
 
   out.close();
 
-  return true;
+  return out.good();
 }
 
 auto
@@ -152,15 +153,21 @@ Sheet::draw_tiles(const std::vector<std::vector<uint8_t>>& png_tiles,
                   SkScalar                                 margin,
                   SkScalar                                 gap) -> void
 {
-  const uint8_t total_tiles = png_tiles.size();
+  const size_t total_tiles = png_tiles.size();
 
-  for (uint8_t i = 0; i < total_tiles; ++i) {
+  for (size_t i = 0; i < total_tiles; ++i) {
     SkScalar column = static_cast<SkScalar>(i % total_column);
     SkScalar row    = static_cast<SkScalar>(i / total_column);
 
     sk_sp<SkData> data =
       SkData::MakeWithCopy(png_tiles[i].data(), png_tiles[i].size());
     sk_sp<SkImage> image = SkImages::DeferredFromEncodedData(data);
+
+    if (nullptr == image) {
+      std::print("Cannot encode {} tile", i + 1);
+
+      continue;
+    }
 
     SkScalar width  = static_cast<SkScalar>(image->width());
     SkScalar height = static_cast<SkScalar>(image->height());
@@ -177,6 +184,12 @@ Sheet::get_tile_sizes(const std::vector<uint8_t>& tile)
 {
   sk_sp<SkData>  data  = SkData::MakeWithCopy(tile.data(), tile.size());
   sk_sp<SkImage> image = SkImages::DeferredFromEncodedData(data);
+
+  if (nullptr == image) {
+    std::print("Cannot encode the first tile");
+
+    return std::make_tuple(0, 0);
+  }
 
   SkScalar width  = static_cast<SkScalar>(image->width());
   SkScalar height = static_cast<SkScalar>(image->height());

@@ -31,11 +31,20 @@ fill_video_metadata(VideoMetadata&           vmt,
       ? static_cast<double>(fmt->duration) / AV_TIME_BASE
       : static_cast<double>(st->duration) * av_q2d(st->time_base);
 
-  vmt.codec_name = avcodec_get_name(pt->codec_id);
-  vmt.profile = dec ? av_get_profile_name(dec, pt->profile) : "unknown profile";
-  vmt.pix_fmt = av_get_pix_fmt_name(static_cast<AVPixelFormat>(pt->format));
-  vmt.color_space =
+  const char* codec_name = avcodec_get_name(pt->codec_id);
+  vmt.codec_name         = codec_name ? codec_name : "unknown codec";
+
+  const char* profile = dec ? av_get_profile_name(dec, pt->profile) : nullptr;
+  vmt.profile         = profile ? profile : "unknown profile";
+
+  const char* pix_fmt =
+    av_get_pix_fmt_name(static_cast<AVPixelFormat>(pt->format));
+  vmt.pix_fmt = pix_fmt ? pix_fmt : "unknown pixel format";
+
+  const char* color_space =
     av_color_space_name(static_cast<AVColorSpace>(pt->color_space));
+  vmt.color_space = color_space ? color_space : "unknown color space";
+
   vmt.width      = pt->width;
   vmt.height     = pt->height;
   vmt.duration   = duration;
@@ -55,12 +64,15 @@ fill_audio_metadata(AudioMetadata&           amt,
   char layout[64];
   av_channel_layout_describe(&pt->ch_layout, layout, sizeof(layout));
 
-  amt.codec_name      = avcodec_get_name(pt->codec_id);
+  const char* codec_name = avcodec_get_name(pt->codec_id);
+  amt.codec_name         = codec_name ? codec_name : "unknown codec";
+
   const char* profile = dec ? av_get_profile_name(dec, pt->profile) : nullptr;
-  amt.profile         = profile ? std::string(profile) : "unknown profile";
-  amt.sample_rate     = pt->sample_rate;
-  amt.nb_channels     = pt->ch_layout.nb_channels;
-  amt.ch_layout       = layout;
+  amt.profile         = profile ? profile : "unknown profile";
+
+  amt.sample_rate = pt->sample_rate;
+  amt.nb_channels = pt->ch_layout.nb_channels;
+  amt.ch_layout   = layout;
 }
 
 auto

@@ -3,12 +3,14 @@
 #include "indicators/cursor_control.hpp"
 
 #include <format>
+#include <thread>
 
 namespace osheet {
 
 auto
 Spinner::init(const char* text) -> void
 {
+  indicators::show_console_cursor(false);
   set_values(text, Spinner::Status::STARTED);
 }
 
@@ -30,6 +32,7 @@ Spinner::set_values(const char* text, Spinner::Status status) -> void
       spinner.set_option(indicators::option::PrefixText{ "✔" });
       spinner.set_option(indicators::option::ShowSpinner{ false });
       spinner.mark_as_completed();
+      indicators::show_console_cursor(true);
       break;
     case Spinner::Status::FAILED_FINISHED:
       spinner.set_option(
@@ -37,6 +40,7 @@ Spinner::set_values(const char* text, Spinner::Status status) -> void
       spinner.set_option(indicators::option::PrefixText{ "✖" });
       spinner.set_option(indicators::option::ShowSpinner{ false });
       spinner.mark_as_completed();
+      indicators::show_console_cursor(true);
       break;
     default:
       break;

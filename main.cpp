@@ -1,4 +1,6 @@
+#include <filesystem>
 #include <format>
+#include <limits>
 #include <print>
 #include <tuple>
 
@@ -7,6 +9,27 @@
 #include "tiles.hpp"
 
 #include "argparse/argparse.hpp"
+
+#define CHECK_FLOAT_VALUE(__var__, __msg__)                                    \
+  if ((__var__) <= 0.0f || (__var__) > std::numeric_limits<float>::max()) {    \
+    std::print("{} {} isnot applicable", __var__, __msg__);                    \
+                                                                               \
+    return 1;                                                                  \
+  }
+
+#define CHECK_UINT32_VALUE(__var__, __msg__)                                   \
+  if (0 == (__var__) || (__var__) > std::numeric_limits<uint32_t>::max()) {    \
+    std::print("{} {} isnot applicable", __var__, __msg__);                    \
+                                                                               \
+    return 1;                                                                  \
+  }
+
+#define CHECK_PATH_EXIST(__var__, __msg__)                                     \
+  if (!std::filesystem::exists(__var__)) {                                     \
+    std::print("{} {} doesnot exist", __var__, __msg__);                       \
+                                                                               \
+    return 1;                                                                  \
+  }
 
 auto
 main(int argc, char* argv[]) -> int
@@ -67,13 +90,26 @@ main(int argc, char* argv[]) -> int
   std::string font_name         = program.get<std::string>("--font");
   std::string font_folder       = program.get<std::string>("--font_dir");
   SkScalar    font_size         = program.get<int>("--font_size");
-  uint8_t     total_row         = program.get<int>("--rows");
-  uint8_t     total_column      = program.get<int>("--cols");
-  uint16_t    wanted_tile_width = program.get<int>("--tile_w");
+  uint32_t    total_row         = program.get<int>("--rows");
+  uint32_t    total_column      = program.get<int>("--cols");
+  uint32_t    wanted_tile_width = program.get<int>("--tile_w");
   SkScalar    gap               = program.get<int>("--gap");
   SkScalar    margin            = program.get<int>("--margin");
   SkScalar    seperator_gap     = program.get<int>("--sep_gap");
   std::string output_filepath   = program.get<std::string>("--output");
+
+  CHECK_PATH_EXIST(video_filepath, "video file");
+  CHECK_PATH_EXIST(font_folder, "font folder");
+
+  CHECK_FLOAT_VALUE(font_size, "font size");
+
+  CHECK_UINT32_VALUE(total_row, "total row");
+  CHECK_UINT32_VALUE(total_column, "total column");
+  CHECK_UINT32_VALUE(wanted_tile_width, "wanted tile width");
+
+  CHECK_FLOAT_VALUE(gap, "gap");
+  CHECK_FLOAT_VALUE(margin, "margin");
+  CHECK_FLOAT_VALUE(seperator_gap, "seperator gap");
 
   auto&& png_tiles = osheet::extract_tiles(
     video_filepath, total_column * total_row, wanted_tile_width);
@@ -96,6 +132,12 @@ main(int argc, char* argv[]) -> int
   sheet.set_font(font_name, font_size, font_folder);
 
   auto [tile_width, tile_height] = sheet.get_tile_sizes(png_tiles[0]);
+
+  if (0 == tile_width || 0 == tile_height) {
+    std::print("Cannot get tile width or height");
+
+    return 1;
+  }
 
   SkScalar line_h   = sheet.get_font_size() + 4.0f;
   SkScalar header_h = margin + 10 * line_h + margin;

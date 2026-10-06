@@ -196,8 +196,8 @@ Sheet::write_metadata(SkScalar& cur_y, SkScalar margin, SkScalar line_h) -> void
 
 auto
 Sheet::draw_tiles(SkScalar& cur_y,
-                  uint8_t   total_column,
-                  uint8_t   total_row,
+                  uint32_t  total_column,
+                  uint32_t  total_row,
                   SkScalar  margin,
                   SkScalar  gap) -> void
 {
@@ -243,6 +243,6 @@ Sheet::get_duration_str(SkScalar duration) -> std::string
   size_t minutes   = pruned_duration / 60;
   pruned_duration -= minutes * 60;
 
-  return std::format("{:02d}:{:02d}:{:02d}", hours, minutes, pruned_duration);
+  return std::format("{:02u}:{:02u}:{:02u}", hours, minutes, pruned_duration);
 }
 }

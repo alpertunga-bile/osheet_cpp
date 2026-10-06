@@ -44,8 +44,8 @@ public:
     -> void;
 
   auto draw_tiles(SkScalar& cur_y,
-                  uint8_t   total_column,
-                  uint8_t   total_row,
+                  uint32_t  total_column,
+                  uint32_t  total_row,
                   SkScalar  margin,
                   SkScalar  gap) -> void;
 

@@ -24,8 +24,7 @@ fill_video_metadata(VideoMetadata&           vmt,
                     const AVStream*          st,
                     const AVCodecParameters* pt) -> void
 {
-  const char*    media_type = av_get_media_type_string(pt->codec_type);
-  const AVCodec* dec        = avcodec_find_decoder(pt->codec_id);
+  const AVCodec* dec = avcodec_find_decoder(pt->codec_id);
   double         duration =
     fmt->duration != AV_NOPTS_VALUE
       ? static_cast<double>(fmt->duration) / AV_TIME_BASE
@@ -78,7 +77,7 @@ fill_video_metadata(VideoMetadata&           vmt,
     vmt.oformat_name = name ? name : "unknown output format";
   }
 
-  vmt.avg_frame_rate = st->avg_frame_rate.den
+  vmt.avg_frame_rate = 0 == st->avg_frame_rate.den
                          ? 0.0f
                          : static_cast<float>(st->avg_frame_rate.num) /
                              static_cast<float>(st->avg_frame_rate.den);

@@ -121,7 +121,7 @@ get_wanted_frame(FrameUniqType&    tile,
     const int sr = avcodec_send_packet(dec.get(), pkt.get());
     av_packet_unref(pkt.get());
 
-    if (sr < 0 && sr != EAGAIN) {
+    if (sr < 0 && sr != AVERROR(EAGAIN)) {
       avcodec_receive_frame(dec.get(), nullptr);
 
       continue;

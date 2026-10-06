@@ -139,6 +139,8 @@ main(int argc, char* argv[]) -> int
     return 1;
   }
 
+  sheet.create_meta_pairs(video_filepath, metadata);
+
   auto [tile_width, tile_height] = sheet.get_tile_sizes();
 
   if (0 == tile_width || 0 == tile_height) {
@@ -148,7 +150,7 @@ main(int argc, char* argv[]) -> int
   }
 
   SkScalar line_h   = sheet.get_font_size() + 4.0f;
-  SkScalar header_h = margin + 10 * line_h + margin;
+  SkScalar header_h = margin + sheet.get_total_meta_pairs() * line_h + margin;
 
   SkScalar grid_w = total_column * tile_width + (total_column - 1) * gap;
   SkScalar grid_h = total_row * tile_height + (total_row - 1) * gap;
@@ -161,7 +163,7 @@ main(int argc, char* argv[]) -> int
 
   sheet.init(width, height);
 
-  sheet.write_metadata(video_filepath, metadata, cur_y, margin, line_h);
+  sheet.write_metadata(cur_y, margin, line_h);
 
   sheet.draw_line(0, cur_y, width, cur_y, 4.0f);
 

@@ -124,43 +124,68 @@ Sheet::decode_store_images(const TileInfos& tile_infos) -> bool
 }
 
 auto
-Sheet::write_metadata(const std::string& video_filepath,
-                      const Metadata&    metadata,
-                      SkScalar&          cur_y,
-                      SkScalar           margin,
-                      SkScalar           line_h) -> void
+Sheet::create_meta_pairs(const std::string& video_filepath,
+                         const Metadata&    metadata) -> void
 {
   auto&& filename = std::filesystem::path(video_filepath).filename();
 
-  std::vector<std::tuple<std::string, std::string>> pairs = {
-    { "Filename", filename },
+  meta_pairs.push_back({ "Filename", filename });
+  meta_pairs.push_back(
     { "Resolution",
-     std::format("{}x{}", metadata.video.width, metadata.video.height) },
-    { "Duration", get_duration_str(metadata.video.duration) },
-    { "Video Codec",
-     std::format("{} {}", metadata.video.codec_name, metadata.video.profile) },
-    { "Frame Rate", std::format("{:0.2f} fps", metadata.video.frame_rate) },
-    { "Pixel Format", metadata.video.pix_fmt },
-    { "Color Space", metadata.video.color_space },
-    { "Audio",
-     std::format("{} {} {} {} {} channels",
-     metadata.audio.codec_name,
-     metadata.audio.profile,
-     metadata.audio.ch_layout,
-     metadata.audio.sample_rate,
-     metadata.audio.nb_channels) }
-  };
+      std::format("{}x{}", metadata.video.width, metadata.video.height) });
+  meta_pairs.push_back(
+    { "Duration", get_duration_str(metadata.video.duration) });
+  meta_pairs.push_back(
+    { "Number of Frames", std::format("{}", metadata.video.nb_frames) });
+  meta_pairs.push_back({ "Video Codec",
+                         std::format("{} {}",
+                                     metadata.video.codec_name,
+                                     metadata.video.profile) });
+  meta_pairs.push_back(
+    { "Video Bitrate", std::format("{} bps", metadata.video.bitrate) });
+  meta_pairs.push_back({ "Frame Rate / Avg Frame Rate",
+                         std::format("{:0.2f} fps / {:0.2f} fps",
+                                     metadata.video.frame_rate,
+                                     metadata.video.avg_frame_rate) });
+  meta_pairs.push_back({ "Pixel Format", metadata.video.pix_fmt });
+  meta_pairs.push_back({ "Color Space/Transfer/Primaries/Range",
+                         std::format("{} / {} / {} / {}",
+                                     metadata.video.color_space,
+                                     metadata.video.color_transfer,
+                                     metadata.video.color_primaries,
+                                     metadata.video.color_range) });
+  meta_pairs.push_back({ "Input / Output Format",
+                         std::format("{} / {}",
+                                     metadata.video.iformat_name,
+                                     metadata.video.oformat_name) });
+  meta_pairs.push_back({ "Audio Codec",
+                         std::format("{} {} {} {} channels",
+                                     metadata.audio.codec_name,
+                                     metadata.audio.profile,
+                                     metadata.audio.ch_layout,
+                                     metadata.audio.nb_channels) });
+  meta_pairs.push_back(
+    { "Audio Bitrate", std::format("{} bps", metadata.audio.bitrate) });
 
+  meta_pairs.push_back({ "Audio Sample",
+                         std::format("{} Hz {}",
+                                     metadata.audio.sample_rate,
+                                     metadata.audio.sample_format) });
+}
+
+auto
+Sheet::write_metadata(SkScalar& cur_y, SkScalar margin, SkScalar line_h) -> void
+{
   SkScalar max_width = 0.0f;
   SkScalar cur_x     = margin;
 
-  for (auto [name, value] : pairs) {
+  for (auto [name, value] : meta_pairs) {
     SkScalar width = calc_text_width(name + " ");
 
     max_width = std::max(max_width, width);
   }
 
-  for (auto [name, value] : pairs) {
+  for (auto [name, value] : meta_pairs) {
     draw_text(name, cur_x, cur_y);
     draw_text(": ", cur_x + max_width, cur_y);
     draw_text(value, cur_x + max_width + calc_text_width(": "), cur_y);
@@ -220,5 +245,4 @@ Sheet::get_duration_str(SkScalar duration) -> std::string
 
   return std::format("{:02d}:{:02d}:{:02d}", hours, minutes, pruned_duration);
 }
-
 }

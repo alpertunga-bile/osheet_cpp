@@ -34,14 +34,14 @@ public:
   {
     return font.measureText(text.c_str(), text.length(), SkTextEncoding::kUTF8);
   }
+  inline auto get_total_meta_pairs() -> size_t { return meta_pairs.size(); }
 
   auto decode_store_images(const TileInfos& tile_infos) -> bool;
+  auto create_meta_pairs(const std::string& video_filepath,
+                         const Metadata&    metadata) -> void;
 
-  auto write_metadata(const std::string& video_filepath,
-                      const Metadata&    metadata,
-                      SkScalar&          cur_y,
-                      SkScalar           margin,
-                      SkScalar           line_h) -> void;
+  auto write_metadata(SkScalar& cur_y, SkScalar margin, SkScalar line_h)
+    -> void;
 
   auto draw_tiles(SkScalar& cur_y,
                   uint8_t   total_column,
@@ -55,12 +55,13 @@ private:
   auto get_duration_str(SkScalar duration) -> std::string;
 
 private:
-  SkBitmap                    bmp        = {};
-  std::unique_ptr<SkCanvas>   canvas     = nullptr;
-  SkFont                      font       = {};
-  sk_sp<SkTypeface>           typeface   = nullptr;
-  SkPaint                     text_paint = {};
-  std::vector<sk_sp<SkImage>> images     = {};
+  SkBitmap                                          bmp        = {};
+  std::unique_ptr<SkCanvas>                         canvas     = nullptr;
+  SkFont                                            font       = {};
+  sk_sp<SkTypeface>                                 typeface   = nullptr;
+  SkPaint                                           text_paint = {};
+  std::vector<sk_sp<SkImage>>                       images     = {};
+  std::vector<std::tuple<std::string, std::string>> meta_pairs = {};
 };
 
 }

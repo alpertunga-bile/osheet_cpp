@@ -111,10 +111,12 @@ main(int argc, char* argv[]) -> int
   CHECK_FLOAT_VALUE(margin, "margin");
   CHECK_FLOAT_VALUE(seperator_gap, "seperator gap");
 
-  auto&& png_tiles = osheet::extract_tiles(
-    video_filepath, total_column * total_row, wanted_tile_width);
+  size_t total_tiles = total_column * total_row;
 
-  if (png_tiles.empty()) {
+  auto&& tile_infos =
+    osheet::extract_tiles(video_filepath, total_tiles, wanted_tile_width);
+
+  if ((total_tiles + 1) != tile_infos.indices.size()) {
     std::print("Cannot get video tiles from {} file", video_filepath);
 
     return 1;
@@ -131,7 +133,13 @@ main(int argc, char* argv[]) -> int
   osheet::Sheet sheet = {};
   sheet.set_font(font_name, font_size, font_folder);
 
-  auto [tile_width, tile_height] = sheet.get_tile_sizes(png_tiles[0]);
+  if (!sheet.decode_store_images(tile_infos)) {
+    std::print("Cannot decode and store the images");
+
+    return 1;
+  }
+
+  auto [tile_width, tile_height] = sheet.get_tile_sizes();
 
   if (0 == tile_width || 0 == tile_height) {
     std::print("Cannot get tile width or height");
@@ -159,7 +167,7 @@ main(int argc, char* argv[]) -> int
 
   cur_y += seperator_gap + line_h;
 
-  sheet.draw_tiles(png_tiles, cur_y, total_column, total_row, margin, gap);
+  sheet.draw_tiles(cur_y, total_column, total_row, margin, gap);
 
   if (!sheet.save(output_filepath)) {
     std::print("Cannot save to {} file", output_filepath);

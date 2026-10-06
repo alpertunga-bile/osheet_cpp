@@ -6,12 +6,15 @@
 #include "skia/core/SkBitmap.h"
 #include "skia/core/SkCanvas.h"
 #include "skia/core/SkFont.h"
+#include "skia/core/SkImage.h"
 #include "skia/core/SkPaint.h"
 
 #include <tuple>
 #include <vector>
 
 namespace osheet {
+
+struct TileInfos;
 
 class Sheet
 {
@@ -32,31 +35,32 @@ public:
     return font.measureText(text.c_str(), text.length(), SkTextEncoding::kUTF8);
   }
 
+  auto decode_store_images(const TileInfos& tile_infos) -> bool;
+
   auto write_metadata(const std::string& video_filepath,
                       const Metadata&    metadata,
                       SkScalar&          cur_y,
                       SkScalar           margin,
                       SkScalar           line_h) -> void;
 
-  auto draw_tiles(const std::vector<std::vector<uint8_t>>& png_tiles,
-                  SkScalar&                                cur_y,
-                  uint8_t                                  total_column,
-                  uint8_t                                  total_row,
-                  SkScalar                                 margin,
-                  SkScalar                                 gap) -> void;
+  auto draw_tiles(SkScalar& cur_y,
+                  uint8_t   total_column,
+                  uint8_t   total_row,
+                  SkScalar  margin,
+                  SkScalar  gap) -> void;
 
-  std::tuple<SkScalar, SkScalar> get_tile_sizes(
-    const std::vector<uint8_t>& tile);
+  auto get_tile_sizes() -> std::tuple<SkScalar, SkScalar>;
 
 private:
   auto get_duration_str(SkScalar duration) -> std::string;
 
 private:
-  SkBitmap                  bmp        = {};
-  std::unique_ptr<SkCanvas> canvas     = nullptr;
-  SkFont                    font       = {};
-  sk_sp<SkTypeface>         typeface   = nullptr;
-  SkPaint                   text_paint = {};
+  SkBitmap                    bmp        = {};
+  std::unique_ptr<SkCanvas>   canvas     = nullptr;
+  SkFont                      font       = {};
+  sk_sp<SkTypeface>           typeface   = nullptr;
+  SkPaint                     text_paint = {};
+  std::vector<sk_sp<SkImage>> images     = {};
 };
 
 }

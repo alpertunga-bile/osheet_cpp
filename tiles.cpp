@@ -201,7 +201,7 @@ extract_tile(FmtUniqType&          fmt,
 auto
 extract_tiles(std::string video_filepath,
               uint16_t    total_tiles,
-              uint16_t    tile_width) -> std::vector<std::vector<uint8_t>>
+              uint16_t    tile_width) -> TileInfos
 {
   osheet::ProgressBar pbar;
   pbar.init("Starting extraction", total_tiles);
@@ -244,8 +244,8 @@ extract_tiles(std::string video_filepath,
                      ? static_cast<float>(fmt->duration) / AV_TIME_BASE
                      : static_cast<float>(st->duration) * av_q2d(st->time_base);
 
-  std::vector<std::vector<uint8_t>> tiles;
-  tiles.reserve(total_tiles);
+  TileInfos infos = {};
+  infos.indices.push_back(0);
 
   for (uint16_t i = 0; i < total_tiles; ++i) {
     std::vector<uint8_t> tile = {};
@@ -262,14 +262,15 @@ extract_tiles(std::string video_filepath,
     pbar.set_values(
       "Extracting tiles", i, osheet::ProgressBar::Status::IN_PROGRESS);
 
-    tiles.push_back(tile);
+    infos.tiles.insert(infos.tiles.end(), tile.begin(), tile.end());
+    infos.indices.push_back(infos.tiles.size());
   }
 
   pbar.set_values("Extracting tiles is completed",
                   100,
                   osheet::ProgressBar::Status::SUCCESS_FINISHED);
 
-  return tiles;
+  return infos;
 }
 
 }

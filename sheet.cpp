@@ -243,6 +243,6 @@ Sheet::get_duration_str(SkScalar duration) -> std::string
   size_t minutes   = pruned_duration / 60;
   pruned_duration -= minutes * 60;
 
-  return std::format("{:02u}:{:02u}:{:02u}", hours, minutes, pruned_duration);
+  return std::format("{:02d}:{:02d}:{:02d}", hours, minutes, pruned_duration);
 }
 }

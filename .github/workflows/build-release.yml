@@ -81,7 +81,9 @@ jobs:
         shell: bash
         run: |
           if [ ! -d "$VCPKG_ROOT" ]; then
-            git clone --depth 1 https://github.com/microsoft/vcpkg.git "$VCPKG_ROOT"
+            # Non-shallow: the pinned baseline may not be the branch tip, so a
+            # --depth 1 clone can't read its tree on the checkout below.
+            git clone https://github.com/microsoft/vcpkg.git "$VCPKG_ROOT"
           fi
           git -C "$VCPKG_ROOT" checkout $VCPKG_BASELINE
           "$VCPKG_ROOT/bootstrap-vcpkg.sh"

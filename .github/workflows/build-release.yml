@@ -39,6 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        cmake-args: [-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -G "Ninja"]
         include:
           - name: linux
             runs-on: ubuntu-latest
@@ -51,7 +52,7 @@ jobs:
             archive: osheet-${{ github.ref_name }}-windows-x64.zip
             strip: false
           - name: macos
-            runs-on: macos-14
+            runs-on: macos-latest
             triplet: x64-osx
             archive: osheet-${{ github.ref_name }}-macos-x64.zip
             strip: true
@@ -87,6 +88,9 @@ jobs:
 
       - name: Configure
         shell: bash
+        env:
+          CXX: clang++
+        working-directory: ${{github.workspace}}
         run: |
           # Ninja ships on ubuntu-24.04 at /usr/bin/ninja; pin CMAKE_MAKE_PROGRAM
           # so CMake finds it even when PATH lookup is quirky. Windows/macOS
@@ -95,7 +99,8 @@ jobs:
           if [ "${{ matrix.name }}" = "linux" ]; then
             MAKE_FLAG="-DCMAKE_MAKE_PROGRAM=/usr/bin/ninja"
           fi
-          cmake -B build -G Ninja \
+          cmake -B build \
+            ${{matrix.cmake-args}} \
             ${MAKE_FLAG} \
             -DCMAKE_BUILD_TYPE=Release \
             -DVCPKG_ROOT="$VCPKG_ROOT" \

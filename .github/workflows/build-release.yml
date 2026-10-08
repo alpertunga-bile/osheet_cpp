@@ -22,11 +22,8 @@ name: build-release
 
 on:
   push:
-    branches: [main]
     tags:
       - 'v*'
-  pull_request:
-    branches: [main]
 
 concurrency:
   group: build-release-${{ github.ref }}
@@ -55,7 +52,7 @@ jobs:
             strip: false
           - name: macos
             runs-on: macos-14
-            triplet: x64-darwin
+            triplet: x64-osx
             archive: osheet-${{ github.ref_name }}-macos-x64.zip
             strip: true
 
@@ -91,7 +88,15 @@ jobs:
       - name: Configure
         shell: bash
         run: |
+          # Ninja ships on ubuntu-24.04 at /usr/bin/ninja; pin CMAKE_MAKE_PROGRAM
+          # so CMake finds it even when PATH lookup is quirky. Windows/macOS
+          # runners have Ninja on PATH, so no pin is needed there.
+          MAKE_FLAG=""
+          if [ "${{ matrix.name }}" = "linux" ]; then
+            MAKE_FLAG="-DCMAKE_MAKE_PROGRAM=/usr/bin/ninja"
+          fi
           cmake -B build -G Ninja \
+            ${MAKE_FLAG} \
             -DCMAKE_BUILD_TYPE=Release \
             -DVCPKG_ROOT="$VCPKG_ROOT" \
             -DVCPKG_DEFAULT_TRIPLET=${{ matrix.triplet }} \

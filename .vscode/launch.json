@@ -9,7 +9,10 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceRoot}/build/osheet_cpp",
-            "args": [],
+            "args": [
+                "-i",
+                "${workspaceFolder}/temp.mkv"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

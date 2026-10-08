@@ -86,9 +86,7 @@ fill_video_metadata(VideoMetadata&           vmt,
 }
 
 auto
-fill_audio_metadata(AudioMetadata&           amt,
-                    const AVStream*          st,
-                    const AVCodecParameters* pt) -> void
+fill_audio_metadata(AudioMetadata& amt, const AVCodecParameters* pt) -> void
 {
   const AVCodec* dec = avcodec_find_decoder(pt->codec_id);
 
@@ -158,7 +156,7 @@ get_metadata(std::string video_filepath, Metadata& metadata) -> bool
       case AVMEDIA_TYPE_AUDIO:
         spinner.set_values("Collecting audio metadata",
                            Spinner::Status::IN_PROGRESS);
-        fill_audio_metadata(metadata.audio, st, pt);
+        fill_audio_metadata(metadata.audio, pt);
         spinner.tick();
         break;
       default:

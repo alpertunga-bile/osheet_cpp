@@ -4,9 +4,9 @@
 #include <print>
 #include <tuple>
 
-#include "metadata.hpp"
-#include "sheet.hpp"
-#include "tiles.hpp"
+#include "src/metadata.hpp"
+#include "src/sheet.hpp"
+#include "src/tiles.hpp"
 
 #include "argparse/argparse.hpp"
 
@@ -158,7 +158,6 @@ main(int argc, char* argv[]) -> int
   SkScalar width  = margin * 2 + grid_w;
   SkScalar height = margin * 2 + header_h + seperator_gap + line_h + grid_h;
 
-  SkScalar cur_x = margin;
   SkScalar cur_y = margin + line_h;
 
   sheet.init(width, height);
@@ -169,13 +168,17 @@ main(int argc, char* argv[]) -> int
 
   cur_y += seperator_gap + line_h;
 
-  sheet.draw_tiles(cur_y, total_column, total_row, margin, gap);
+  sheet.draw_tiles(cur_y, total_column, margin, gap);
 
   if (!sheet.save(output_filepath)) {
     std::print("Cannot save to {} file", output_filepath);
 
     return 1;
   }
+
+  std::println("The {} file is created successfully\n", output_filepath);
+
+  sheet.print_meta();
 
   return 0;
 }

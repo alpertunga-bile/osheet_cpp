@@ -48,6 +48,7 @@ Sheet::set_font(std::string font_name,
 
   font.setTypeface(typeface);
   font.setSize(font_size);
+  font.setHinting(SkFontHinting::kNormal);
   font.setEdging(SkFont::Edging::kAntiAlias);
 
   return true;
@@ -197,7 +198,6 @@ Sheet::write_metadata(SkScalar& cur_y, SkScalar margin, SkScalar line_h) -> void
 auto
 Sheet::draw_tiles(SkScalar& cur_y,
                   uint32_t  total_column,
-                  uint32_t  total_row,
                   SkScalar  margin,
                   SkScalar  gap) -> void
 {
@@ -217,7 +217,35 @@ Sheet::draw_tiles(SkScalar& cur_y,
     SkScalar x = margin + column * (width + gap);
     SkScalar y = cur_y + row * (height + gap);
 
-    canvas->drawImage(image, x, y);
+    static const SkSamplingOptions image_opt{ SkCubicResampler::CatmullRom() };
+
+    canvas->drawImage(image, x, y, image_opt, nullptr);
+  }
+}
+
+auto
+Sheet::print_meta() -> void
+{
+  if (meta_pairs.empty()) {
+    return;
+  }
+
+  SkScalar max_width = 0;
+
+  for (auto [name, value] : meta_pairs) {
+    SkScalar width = name.length();
+
+    max_width = std::max(max_width, width);
+  }
+
+  std::println(
+    "#----------------------------- Metadata -----------------------------#");
+
+  for (auto [name, value] : meta_pairs) {
+    std::string label =
+      std::format("{:{}s}", name, static_cast<size_t>(max_width));
+
+    std::println("{} : {}", label, value);
   }
 }
 

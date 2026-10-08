@@ -45,9 +45,10 @@ public:
 
   auto draw_tiles(SkScalar& cur_y,
                   uint32_t  total_column,
-                  uint32_t  total_row,
                   SkScalar  margin,
                   SkScalar  gap) -> void;
+
+  auto print_meta() -> void;
 
   auto get_tile_sizes() -> std::tuple<SkScalar, SkScalar>;
 

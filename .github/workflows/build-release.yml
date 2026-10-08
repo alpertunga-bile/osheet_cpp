@@ -1,0 +1,175 @@
+# osheet — cross-platform build & release.
+#
+# Builds the single executable `osheet_cpp` for Linux, Windows and macOS,
+# packages each as a portable archive (binary + bundled `fonts/`), runs a
+# smoke test against `samples/sample.mp4`, and publishes the three archives as
+# a GitHub Release.
+#
+# The user creates and pushes the release tag manually (see the `release` job
+# trigger); this workflow does not push, tag, or create releases itself.
+#
+# Static binary is the goal (vcpkg `x64-windows-static` embeds the MSVC runtime;
+# Linux/macOS default triplets build static libs). Skia's vcpkg port is tuned
+# for dynamic linking, so if a static build fails, drop the triplets and ship
+# the resulting .dll/.dylib alongside the binary.
+#
+# All actions are pinned to exact commit SHAs (not tags) to prevent an unreviewed
+# tag push from changing which code runs. To bump an action, fetch its tag SHA
+# via `gh api repos/<repo>/commits/tags/<tag> --jq '.sha'` and update in lockstep
+# with a review of the diff the bump introduces.
+
+name: build-release
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: build-release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build (${{ matrix.name }})
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux
+            runs-on: ubuntu-latest
+            triplet: x64-linux
+            archive: osheet-${{ github.ref_name }}-linux-x64.tar.gz
+            strip: true
+          - name: windows
+            runs-on: windows-latest
+            triplet: x64-windows-static
+            archive: osheet-${{ github.ref_name }}-windows-x64.zip
+            strip: false
+          - name: macos
+            runs-on: macos-14
+            triplet: x64-darwin
+            archive: osheet-${{ github.ref_name }}-macos-x64.zip
+            strip: true
+
+    env:
+      VCPKG_BASELINE: 4270bf9556a461d3777207a007be0770ec77d3e5
+      VCPKG_ROOT: ${{ matrix.name == 'windows' && 'D:\vcpkg' || '$HOME/vcpkg' }}
+      PACKAGE_DIR: ${{ github.workspace }}/dist/osheet-${{ matrix.name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Restore vcpkg install cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ env.VCPKG_ROOT }}/installed
+          key: vcpkg-${{ matrix.triplet }}-${{ runner.os }}-${{ env.VCPKG_BASELINE }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-${{ matrix.triplet }}-${{ runner.os }}-${{ env.VCPKG_BASELINE }}-
+            vcpkg-${{ matrix.triplet }}-${{ runner.os }}-
+
+      - name: Bootstrap vcpkg at pinned baseline
+        shell: bash
+        run: |
+          if [ ! -d "$VCPKG_ROOT" ]; then
+            git clone --depth 1 https://github.com/microsoft/vcpkg.git "$VCPKG_ROOT"
+          fi
+          git -C "$VCPKG_ROOT" checkout $VCPKG_BASELINE
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh"
+
+      - name: Configure
+        shell: bash
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DVCPKG_ROOT="$VCPKG_ROOT" \
+            -DVCPKG_DEFAULT_TRIPLET=${{ matrix.triplet }} \
+            -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
+
+      - name: Build
+        shell: bash
+        run: cmake --build build --config Release
+
+      - name: Package (binary + fonts)
+        shell: bash
+        run: |
+          mkdir -p "$PACKAGE_DIR"
+          cp build/osheet_cpp "$PACKAGE_DIR/"
+          cp -r fonts "$PACKAGE_DIR/"
+          if [ "${{ matrix.name }}" = "linux" ]; then
+            # Link against the runner's libstdc++; bundle it so the release is
+            # self-contained on distros with an older C++ runtime.
+            libstdc="$(g++ -print-file-name=libstdc++.so.6)"
+            if [ -n "$libstdc" ] && [ -f "$libstdc" ]; then
+              cp "$libstdc" "$PACKAGE_DIR/"
+            fi
+          fi
+
+      - name: Smoke test
+        shell: bash
+        working-directory: ${{ env.PACKAGE_DIR }}
+        run: |
+          ./osheet_cpp -i "${{ github.workspace }}/samples/sample.mp4" -o sheet.png
+          if [ ! -s sheet.png ] || ! file sheet.png | grep -q PNG; then
+            echo "smoke test failed: no valid PNG produced"
+            exit 1
+          fi
+          echo "smoke test passed: sheet.png"
+
+      - name: Strip binary
+        if: ${{ matrix.strip }}
+        shell: bash
+        run: strip "$PACKAGE_DIR/osheet_cpp"
+
+      - name: Create archive (unix)
+        if: ${{ matrix.name != 'windows' }}
+        shell: bash
+        run: |
+          if [ "${{ matrix.name }}" = "macos" ]; then
+            ( cd "$PACKAGE_DIR" && zip -r "../osheet-${{ matrix.name }}.zip" . )
+          else
+            tar -czf "$PACKAGE_DIR.tar.gz" -C "$PACKAGE_DIR" .
+          fi
+          mv "$PACKAGE_DIR.${{ matrix.name == 'macos' && 'zip' || 'tar.gz' }}" "${{ github.workspace }}/${{ matrix.archive }}"
+
+      - name: Create archive (windows)
+        if: ${{ matrix.name == 'windows' }}
+        shell: powershell
+        run: |
+          Compress-Archive -Path "$env:PACKAGE_DIR\*" -DestinationPath "$env:GITHUB_WORKSPACE\${{ matrix.archive }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: osheet-${{ matrix.name }}
+          path: ${{ github.workspace }}/${{ matrix.archive }}
+          if-no-files-found: error
+
+  release:
+    name: create release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          path: ${{ github.workspace }}/artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@1d741d87f6617b990f1af503fa634ea9742b9685
+        with:
+          files: ${{ github.workspace }}/artifacts/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -48,8 +48,8 @@ Sheet::set_font(std::string font_name,
 
   font.setTypeface(typeface);
   font.setSize(font_size);
-  font.setHinting(SkFontHinting::kNormal);
-  font.setEdging(SkFont::Edging::kAntiAlias);
+  font.setHinting(SkFontHinting::kSlight);
+  font.setEdging(SkFont::Edging::kSubpixelAntiAlias);
 
   return true;
 }
@@ -186,10 +186,12 @@ Sheet::write_metadata(SkScalar& cur_y, SkScalar margin, SkScalar line_h) -> void
     max_width = std::max(max_width, width);
   }
 
+  SkScalar db_col_width = calc_text_width(": ");
+
   for (auto [name, value] : meta_pairs) {
     draw_text(name, cur_x, cur_y);
     draw_text(": ", cur_x + max_width, cur_y);
-    draw_text(value, cur_x + max_width + calc_text_width(": "), cur_y);
+    draw_text(value, cur_x + max_width + db_col_width, cur_y);
 
     cur_y += line_h;
   }

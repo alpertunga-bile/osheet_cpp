@@ -10,6 +10,21 @@
 
 #include "argparse/argparse.hpp"
 
+void
+print_banner()
+{
+  std::println(R"(
+                        _/                              _/   
+                       _/                              _/   
+    _/_/      _/_/_/  _/_/_/      _/_/      _/_/    _/_/_/_/    _/_/_/  _/_/_/    _/_/_/ 
+ _/    _/  _/_/      _/    _/  _/_/_/_/  _/_/_/_/    _/      _/        _/    _/  _/    _/
+_/    _/      _/_/  _/    _/  _/        _/          _/      _/        _/    _/  _/    _/ 
+ _/_/    _/_/_/    _/    _/    _/_/_/    _/_/_/      _/_/    _/_/_/  _/_/_/    _/_/_/   
+                                                                    _/        _/      
+                                                                   _/        _/        
+)");
+}
+
 #define CHECK_FLOAT_VALUE(__var__, __msg__)                                    \
   if ((__var__) <= 0.0f || (__var__) > std::numeric_limits<float>::max()) {    \
     std::print("{} {} isnot applicable", __var__, __msg__);                    \
@@ -110,6 +125,8 @@ main(int argc, char* argv[]) -> int
   CHECK_FLOAT_VALUE(gap, "gap");
   CHECK_FLOAT_VALUE(margin, "margin");
   CHECK_FLOAT_VALUE(seperator_gap, "seperator gap");
+
+  print_banner();
 
   size_t total_tiles = total_column * total_row;
 

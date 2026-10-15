@@ -18,6 +18,7 @@
       "features": [
         "avformat",
         "avcodec",
+        "dav1d",
         "swscale",
         "zlib"
       ]
@@ -29,5 +30,5 @@
       "name": "argparse"
     }
   ],
-  "builtin-baseline": "4270bf9556a461d3777207a007be0770ec77d3e5"
+  "builtin-baseline": "44ccfd88b3eca6929d6d16398c7b19945c29a5f6"
 }

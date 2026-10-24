@@ -33,10 +33,18 @@ Optional arguments:
 
 ## Test Output
 
-### CLI Output
-
 ```bash
-❯ ./build/osheet_cpp -i samples/sample.mp4
+❯ ./build/osheet_cpp -i samples/sample.mp4 --font Inter
+
+                        _/                              _/
+                       _/                              _/
+    _/_/      _/_/_/  _/_/_/      _/_/      _/_/    _/_/_/_/    _/_/_/  _/_/_/    _/_/_/
+ _/    _/  _/_/      _/    _/  _/_/_/_/  _/_/_/_/    _/      _/        _/    _/  _/    _/
+_/    _/      _/_/  _/    _/  _/        _/          _/      _/        _/    _/  _/    _/
+ _/_/    _/_/_/    _/    _/    _/_/_/    _/_/_/      _/_/    _/_/_/  _/_/_/    _/_/_/
+                                                                    _/        _/
+                                                                   _/        _/
+
 [■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ ] 100% ✔ Extracting tiles is completed                                   
 ✔ Metadata values are collected                             
 The sheet.png file is created successfully
@@ -56,7 +64,3 @@ Audio Codec                          : aac LC mono 1 channels
 Audio Bitrate                        : 69424 bps
 Audio Sample                         : 44100 Hz fltp
 ```
-
-### Sheet Output
-
-![sample_sheet](samples/sample.png)

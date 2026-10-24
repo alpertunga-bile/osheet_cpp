@@ -17,6 +17,12 @@ set(CMAKE_TOOLCHAIN_FILE ${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake
 
 project(osheet_cpp VERSION 0.1.0 LANGUAGES CXX)
 
+# Single-config generators with no explicit type would otherwise get none of
+# the Release flags below.
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
 # ---- C++ standard ----------------------------------------------------------
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -50,11 +56,21 @@ set(OSHEET_SOURCES
 )
 
 # ---- Build-type flags (per-compiler, cross-platform) -----------------------
-# Optimization level: MSVC sets /O2 in its default Release flags and has no -O3.
+# OSHET_NATIVE=ON optimizes for the CPU that builds (the binary then needs a
+# CPU with at least the same feature set); OFF targets every desktop CPU.
+option(OSHEET_NATIVE "Optimize for the build machine's CPU" ON)
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set(_osheet_opt_flag "")
+    # /O2 is already in MSVC's default Release flags; /Ob2 inlines more.
+    set(_osheet_opt_flag "/Ob2")
+elseif(OSHEET_NATIVE)
+    set(_osheet_opt_flag "-O3 -march=native")
 else()
-    set(_osheet_opt_flag "-O3")
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64|amd64)")
+        set(_osheet_opt_flag "-O3 -march=x86-64-v2")
+    else()
+        set(_osheet_opt_flag "-O3")  # aarch64: NEON is in the baseline
+    endif()
 endif()
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${_osheet_opt_flag}")
 
@@ -70,7 +86,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${_osheet_debug_flags}")
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set(_osheet_gc_flags "/OPT:REF /INCREMENTAL:NO")
 elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-    set(_osheet_gc_flags "-ffunction-sections -fdata-sections -Wl,-gc-sections")
+    set(_osheet_gc_flags "-ffunction-sections -fdata-sections -Wl,-dead_strip")
 else()
     set(_osheet_gc_flags "-ffunction-sections -Wl,--gc-sections")
 endif()
@@ -87,23 +103,6 @@ endif()
 option(OSHEET_DEBUG_SANITIZE "Enable AddressSanitizer in Debug builds" OFF)
 # ---- Performance / memory options ------------------------------------------
 option(OSHEET_BUILD_LTO      "Link-time optimization" ON)
-option(OSHEET_ENABLE_SIMD    "SIMD compiler flags" ON)
-
-# ---- SIMD flags (guarded; safe defaults per arch) --------------------------
-if(OSHEET_ENABLE_SIMD)
-    if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-        if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64|amd64)")
-            add_compile_options(-msse2)
-            include(CheckCXXCompilerFlag)
-            check_cxx_compiler_flag("-mavx2" OSHEET_HAVE_AVX2)
-            if(OSHEET_HAVE_AVX2)
-                add_compile_options(-mavx2)
-            endif()
-        elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64|arm64)")
-            add_compile_options(-DARM_NEON)
-        endif()
-    endif()
-endif()
 
 # ---- Dependencies (cross-platform via vcpkg) -------------------------------
 find_package(FFMPEG REQUIRED)                  # vcpkg module: FindFFMPEG.cmake
@@ -134,12 +133,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 # ---- LTO (per target, must come after add_executable) ----------------------
 if(OSHEET_BUILD_LTO AND CMAKE_BUILD_TYPE STREQUAL "Release")
-    if(COMMAND check_ipo_support)
-        include(CheckIPOSupport)
-        check_ipo_support(RESULT OSHEET_HAVE_IPO)
-    else()
-        set(OSHEET_HAVE_IPO ON)
-    endif()
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT OSHEET_HAVE_IPO LANGUAGES CXX)
     if(OSHEET_HAVE_IPO)
         set_target_properties(${PROJECT_NAME} PROPERTIES
             INTERPROCEDURAL_OPTIMIZATION ON)

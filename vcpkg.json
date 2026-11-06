@@ -8,9 +8,16 @@
       "default-features": false,
       "features": [
         "png",
-        "freetype",
-        "fontconfig"
+        "freetype"
       ]
+    },
+    {
+      "name": "skia",
+      "default-features": false,
+      "features": [
+        "fontconfig"
+      ],
+      "platform": "linux"
     },
     {
       "name": "ffmpeg",
@@ -30,5 +37,5 @@
       "name": "argparse"
     }
   ],
-  "builtin-baseline": "0c2a9ace1964b818b15f7ae50ba1c42404918a7b"
+  "builtin-baseline": "46288c8b2844070a52b15b6fe69d0e13fc97ecb4"
 }

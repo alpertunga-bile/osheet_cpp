@@ -55,12 +55,14 @@ Resolution                           : 320x240
 Duration                             : 00:00:04
 Number of Frames                     : 60
 Video Codec                          : h264 High
-Video Bitrate                        : 33660 bps
+Video Bitrate                        : 36062 bps
 Frame Rate / Avg Frame Rate          : 15.00 fps / 15.00 fps
 Pixel Format                         : yuv420p
 Color Space/Transfer/Primaries/Range : unknown / unknown / unknown / unknown
 Input / Output Format                : mov,mp4,m4a,3gp,3g2,mj2 / unknown output format
 Audio Codec                          : aac LC mono 1 channels
-Audio Bitrate                        : 69424 bps
+Audio Bitrate                        : 64591 bps
 Audio Sample                         : 44100 Hz fltp
 ```
+
+![test_image](samples/sheet.png)

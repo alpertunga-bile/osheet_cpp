@@ -17,6 +17,13 @@ set(CMAKE_TOOLCHAIN_FILE ${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake
 
 project(osheet_cpp VERSION 0.1.0 LANGUAGES CXX)
 
+# Static vcpkg triplets (e.g. x64-windows-static) build the deps with /MT, so
+# our TUs must match or the link fails with LNK2038 (RuntimeLibrary mismatch).
+# The toolchain does not set this because it is loaded from this file.
+if(MSVC AND VCPKG_TARGET_TRIPLET MATCHES "static" AND NOT VCPKG_TARGET_TRIPLET MATCHES "static-md")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 # Single-config generators with no explicit type would otherwise get none of
 # the Release flags below.
 if(NOT CMAKE_BUILD_TYPE)

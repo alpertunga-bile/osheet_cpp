@@ -56,21 +56,15 @@ set(OSHEET_SOURCES
 )
 
 # ---- Build-type flags (per-compiler, cross-platform) -----------------------
-# OSHET_NATIVE=ON optimizes for the CPU that builds (the binary then needs a
-# CPU with at least the same feature set); OFF targets every desktop CPU.
-option(OSHEET_NATIVE "Optimize for the build machine's CPU" ON)
-
+# Portable baseline only (no -march=native): the binary must run on every
+# desktop CPU, since CI builds are distributed.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     # /O2 is already in MSVC's default Release flags; /Ob2 inlines more.
     set(_osheet_opt_flag "/Ob2")
-elseif(OSHEET_NATIVE)
-    set(_osheet_opt_flag "-O3 -march=native")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64|amd64)")
+    set(_osheet_opt_flag "-O3 -march=x86-64-v2")
 else()
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64|amd64)")
-        set(_osheet_opt_flag "-O3 -march=x86-64-v2")
-    else()
-        set(_osheet_opt_flag "-O3")  # aarch64: NEON is in the baseline
-    endif()
+    set(_osheet_opt_flag "-O3")  # arm64: NEON is in the baseline
 endif()
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${_osheet_opt_flag}")
 

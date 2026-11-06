@@ -65,33 +65,23 @@ set(OSHEET_SOURCES
 # ---- Build-type flags (per-compiler, cross-platform) -----------------------
 # Portable baseline only (no -march=native): the binary must run on every
 # desktop CPU, since CI builds are distributed.
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    # /O2 is already in MSVC's default Release flags; /Ob2 inlines more.
-    set(_osheet_opt_flag "/Ob2")
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64|amd64)")
-    set(_osheet_opt_flag "-O3 -march=x86-64-v2")
-else()
-    set(_osheet_opt_flag "-O3")  # arm64: NEON is in the baseline
+# CMake's own Release defaults already give -O3 (GNU/Clang) and /O2 /Ob2 (MSVC),
+# so only the arch baseline is added here. arm64: NEON is in the baseline.
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC"
+    AND CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64|amd64)")
+    string(APPEND CMAKE_CXX_FLAGS_RELEASE " -march=x86-64-v2")
 endif()
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${_osheet_opt_flag}")
 
-# Sanitizers (Debug) + frame pointer: MSVC uses /fsanitize and always has frame pointers.
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set(_osheet_debug_flags "/fsanitize=address,undefined")
-else()
-    set(_osheet_debug_flags "-fno-omit-frame-pointer -fsanitize=address,undefined")
+# Sanitizers (Debug only, opt-in). MSVC supports ASan only (no UBSan).
+option(OSHEET_DEBUG_SANITIZE "Enable AddressSanitizer in Debug builds" OFF)
+if(OSHEET_DEBUG_SANITIZE)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        string(APPEND CMAKE_CXX_FLAGS_DEBUG " /fsanitize=address")
+    else()
+        string(APPEND CMAKE_CXX_FLAGS_DEBUG
+               " -fno-omit-frame-pointer -fsanitize=address,undefined")
+    endif()
 endif()
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${_osheet_debug_flags}")
-
-# Dead-code stripping (Release): GNU, Apple, and MSVC all use different syntax.
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set(_osheet_gc_flags "/OPT:REF /INCREMENTAL:NO")
-elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-    set(_osheet_gc_flags "-ffunction-sections -fdata-sections -Wl,-dead_strip")
-else()
-    set(_osheet_gc_flags "-ffunction-sections -Wl,--gc-sections")
-endif()
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${_osheet_gc_flags}")
 
 # ---- Warnings (all configs; MSVC uses /W4) --------------------------------
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -100,8 +90,6 @@ else()
     add_compile_options(-Wall -Wextra)
 endif()
 
-# ---- Optional debug sanitizer ----------------------------------------------
-option(OSHEET_DEBUG_SANITIZE "Enable AddressSanitizer in Debug builds" OFF)
 # ---- Performance / memory options ------------------------------------------
 option(OSHEET_BUILD_LTO      "Link-time optimization" ON)
 
@@ -125,6 +113,27 @@ else()
     target_compile_options(${PROJECT_NAME} PRIVATE -fno-rtti)
 endif()
 
+# ---- Dead-code / symbol stripping (Release) --------------------------------
+# Compile side: per-function/data sections let the linker drop unused code.
+# Link side must go through target_link_options: on MSVC, CMake calls link.exe
+# directly, so linker flags inside CMAKE_CXX_FLAGS would only reach cl.exe.
+if(MSVC)
+    set(_osheet_compile_flags /Gy /Gw)
+    set(_osheet_link_flags    /OPT:REF /OPT:ICF /INCREMENTAL:NO)
+elseif(APPLE)
+    set(_osheet_compile_flags -ffunction-sections -fdata-sections)
+    set(_osheet_link_flags    -Wl,-dead_strip -Wl,-x -Wl,-S)
+else()
+    # --strip-all drops .symtab and .debug_* that the static Skia/FFmpeg libs
+    # carry (~100 MB); Windows/macOS keep those out of the binary already.
+    set(_osheet_compile_flags -ffunction-sections -fdata-sections)
+    set(_osheet_link_flags    -Wl,--gc-sections -Wl,--as-needed -Wl,--strip-all)
+endif()
+target_compile_options(${PROJECT_NAME} PRIVATE
+    "$<$<CONFIG:Release>:${_osheet_compile_flags}>")
+target_link_options(${PROJECT_NAME} PRIVATE
+    "$<$<CONFIG:Release>:${_osheet_link_flags}>")
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
     unofficial::skia::skia
     ${FFMPEG_LIBRARIES}
@@ -133,11 +142,12 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 # ---- LTO (per target, must come after add_executable) ----------------------
-if(OSHEET_BUILD_LTO AND CMAKE_BUILD_TYPE STREQUAL "Release")
+if(OSHEET_BUILD_LTO)
     include(CheckIPOSupported)
     check_ipo_supported(RESULT OSHEET_HAVE_IPO LANGUAGES CXX)
     if(OSHEET_HAVE_IPO)
+        # Per-config: works for multi-config generators too.
         set_target_properties(${PROJECT_NAME} PROPERTIES
-            INTERPROCEDURAL_OPTIMIZATION ON)
+            INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
     endif()
 endif()

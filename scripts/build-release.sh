@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build osheet_cpp in Release with LTO + profile-guided optimization.
+# Build osheet_cpp in Release with LTO and dead-code/symbol stripping.
 set -euo pipefail
 
 export VCPKG_ROOT="${VCPKG_ROOT:-$HOME/.local/share/vcpkg}"

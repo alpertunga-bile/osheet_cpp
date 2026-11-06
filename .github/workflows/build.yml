@@ -1,0 +1,118 @@
+name: build
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            triplet: x64-linux
+          - os: windows-latest
+            triplet: x64-windows-static
+          - os: macos-latest
+            triplet: arm64-osx
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system deps (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ninja-build nasm pkg-config autoconf automake libtool gperf
+
+      - name: Install system deps (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ninja nasm autoconf automake libtool pkg-config
+
+      - name: MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      # Full-history clone: vcpkg.json uses builtin-baseline.
+      - name: Bootstrap vcpkg
+        shell: bash
+        run: |
+          git clone https://github.com/microsoft/vcpkg "$RUNNER_TEMP/vcpkg"
+          if [ "$RUNNER_OS" = Windows ]; then "$RUNNER_TEMP/vcpkg/bootstrap-vcpkg.bat" -disableMetrics; else "$RUNNER_TEMP/vcpkg/bootstrap-vcpkg.sh" -disableMetrics; fi
+          echo "VCPKG_ROOT=$RUNNER_TEMP/vcpkg" >> "$GITHUB_ENV"
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+
+      - uses: actions/cache@v4
+        with:
+          path: .vcpkg-cache
+          key: vcpkg-${{ matrix.os }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-${{ matrix.os }}-
+
+      - name: Configure
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Stage dist (exe + fonts)
+        shell: bash
+        run: |
+          mkdir dist
+          cp build/osheet_cpp* dist/ 2>/dev/null || true
+          rm -f dist/*.ninja* dist/*.pdb dist/*.ilk
+          cp -r fonts dist/fonts
+          ls -l dist
+
+      - name: Smoke test
+        shell: bash
+        run: |
+          cd dist
+          exe=./osheet_cpp; [ -f osheet_cpp.exe ] && exe=./osheet_cpp.exe
+          "$exe" --version
+          "$exe" -i ../samples/sample.mp4 -o ../sheet.png
+          cd ..
+          test -s sheet.png
+          head -c 8 sheet.png | od -An -tx1 | tr -d '\n' | grep -q '89 50 4e 47 0d 0a 1a 0a'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: osheet-${{ matrix.os }}
+          path: dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sheet-${{ matrix.os }}
+          path: sheet.png
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: osheet-*
+          path: artifacts
+
+      - name: Zip and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          for d in artifacts/*/; do
+            n=$(basename "$d")
+            (cd "$d" && chmod +x osheet_cpp* && zip -r "$GITHUB_WORKSPACE/$n.zip" .)
+          done
+          gh release create "$GITHUB_REF_NAME" --generate-notes ./*.zip

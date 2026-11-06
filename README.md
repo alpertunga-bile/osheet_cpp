@@ -9,6 +9,45 @@ C++23 project that using FFMPEG + Skia libraries to create video contact sheet.
 - Using Skia's and FFMPEG's best qualities as default.
 - Configurable arguments as [CLI arguments](#cli-arguments).
 
+## Setup
+
+### Prebuilt Binaries
+
+- You can download prebuild binaries from [releases](https://github.com/alpertunga-bile/osheet_cpp/releases)
+
+### Manual Build
+
+#### Prerequisites
+
+- CMake (>= 3.26)
+- vcpkg
+- Ninja
+
+#### Build Instructions
+
+1. Get third-party libraries
+
+```bash
+vcpkg install
+```
+
+2. Configure CMake 
+
+- $triplet values are:
+  - x64-linux
+  - x64-windows-static
+  - arm64-osx
+
+```bash
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DVCPKG_TARGET_TRIPLET=$triplet
+```
+
+3. Build with CMake
+
+```bash
+cmake --build build
+```
+
 ## CLI Arguments
 
 ```bash

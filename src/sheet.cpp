@@ -128,7 +128,7 @@ auto
 Sheet::create_meta_pairs(const std::string& video_filepath,
                          const Metadata&    metadata) -> void
 {
-  auto&& filename = std::filesystem::path(video_filepath).filename();
+  auto&& filename = std::filesystem::path(video_filepath).filename().string();
 
   meta_pairs.push_back({ "Filename", filename });
   meta_pairs.push_back(

@@ -2,12 +2,25 @@
 
 C++23 project that using FFMPEG + Skia libraries to create video contact sheet.
 
+- [osheet\_cpp](#osheet_cpp)
+  - [Features](#features)
+  - [Setup](#setup)
+    - [Prebuilt Binaries](#prebuilt-binaries)
+    - [Manual Build](#manual-build)
+      - [Prerequisites](#prerequisites)
+      - [Build Instructions](#build-instructions)
+  - [Usage](#usage)
+  - [CLI Arguments](#cli-arguments)
+  - [Test Output](#test-output)
+
+
 ## Features
 
-- Single executable. FFMPEG and Skia is linked to the executable so does not rely on external FFMPEG executable.
-- Using Google's [Skia](https://github.com/google/skia) for creating video contact sheet output.
-- Using Skia's and FFMPEG's best qualities as default.
+- Single executable. FFMPEG and Skia is statically linked to, so no external FFMPEG executable. The executable size is small too. Normally ffmpeg exec size is ~180 MB. This project's exec size is ~30 MB
+- No temporary files. Frames are decoded and encoded in memory.
+- Frame scaling uses FFmpeg swscale with Lanczos. Tiles are placed on the sheet with Skia's Catmull-Rom resampling. Output is PNG.
 - Configurable arguments as [CLI arguments](#cli-arguments).
+- Using Google's Skia ([google/skia](https://github.com/google/skia)) draws the text, the separator line and the tiles.
 
 ## Setup
 
@@ -19,33 +32,55 @@ C++23 project that using FFMPEG + Skia libraries to create video contact sheet.
 
 #### Prerequisites
 
-- CMake (>= 3.26)
-- vcpkg
-- Ninja
+- C++23 compiler: GCC >= 12, Clang >= 13 or MSVC >= 19.38
+- [CMake](https://cmake.org/) >= 3.26
+- [Ninja](https://ninja-build.org/)
+- [vcpkg](https://github.com/microsoft/vcpkg), cloned and bootstrapped, with `VCPKG_ROOT` pointing at it
+- Tools that vcpkg needs to build Skia and FFmpeg:
+  - Linux: `sudo apt-get install ninja-build nasm pkg-config autoconf autoconf-archive automake libtool gperf`
+  - macOS: `brew install ninja nasm autoconf automake libtool pkg-config`
+  - Windows: Visual Studio with the C++ workload, run from a "x64 Native Tools" prompt
 
 #### Build Instructions
 
-1. Get third-party libraries
+1. Set `VCPKG_ROOT`
 
 ```bash
-vcpkg install
+export VCPKG_ROOT="$HOME/vcpkg"   # your vcpkg path
+```
+
+```powershell
+$env:VCPKG_ROOT = "C:\vcpkg"      # your vcpkg path
 ```
 
 2. Configure CMake 
 
-- $triplet values are:
+- possible $triplet values are:
   - x64-linux
   - x64-windows-static
   - arm64-osx
 
 ```bash
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DVCPKG_TARGET_TRIPLET=$triplet
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DVCPKG_ROOT="$VCPKG_ROOT" -DVCPKG_TARGET_TRIPLET=$triplet
 ```
 
 3. Build with CMake
 
 ```bash
 cmake --build build
+```
+
+## Usage
+
+```bash
+# defaults: 4x4 grid, 320 px tiles, writes sheet.png
+./osheet_cpp -i movie.mkv
+
+# 3 rows x 5 columns, 480 px tiles, custom output
+./osheet_cpp -i movie.mkv -r 3 -c 5 -tw 480 -o movie_sheet.png
+
+# other font from a font folder
+./osheet_cpp -i movie.mkv --font Inter --font_dir ./fonts
 ```
 
 ## CLI Arguments

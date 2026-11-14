@@ -1,6 +1,6 @@
 {
   "name": "osheet-cpp",
-  "version": "0.1.0",
+  "version": "0.1.5",
   "description": "Video contact sheet generator: FFmpeg decode + Skia render",
   "dependencies": [
     {
@@ -37,5 +37,5 @@
       "name": "argparse"
     }
   ],
-  "builtin-baseline": "46288c8b2844070a52b15b6fe69d0e13fc97ecb4"
+  "builtin-baseline": "4702e381dbbd9b54d3f7e1eb565cd8981c1814cd"
 }

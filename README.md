@@ -22,11 +22,17 @@ C++23 project that using FFMPEG + Skia libraries to create video contact sheet.
 - Configurable arguments as [CLI arguments](#cli-arguments).
 - Using Google's Skia ([google/skia](https://github.com/google/skia)) draws the text, the separator line and the tiles.
 
+![test_image](samples/sheet.png)
+
 ## Setup
 
 ### Prebuilt Binaries
 
-- You can download prebuild binaries from [releases](https://github.com/alpertunga-bile/osheet_cpp/releases)
+- You can download prebuild binaries from [releases](https://github.com/alpertunga-bile/osheet_cpp/releases) page.
+- The zip contains ```fonts``` folder to ease the usage of the application.
+
+1. Download and unzip the file which OS you are using.
+2. Run the executable file. Check [usage](#usage) and [arguments](#cli-arguments). 
 
 ### Manual Build
 
@@ -119,24 +125,22 @@ _/    _/      _/_/  _/    _/  _/        _/          _/      _/        _/    _/  
                                                                     _/        _/
                                                                    _/        _/
 
-[■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ ] 100% ✔ Extracting tiles is completed                                   
-✔ Metadata values are collected                             
+[■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ ] 100% ✔ Extracting tiles is completed
+✔ Metadata values are collected
 The sheet.png file is created successfully
 
 #----------------------------- Metadata -----------------------------#
 Filename                             : sample.mp4
-Resolution                           : 320x240
-Duration                             : 00:00:04
-Number of Frames                     : 60
+Resolution                           : 1280x720
+Duration                             : 00:00:12
+Number of Frames                     : 360
 Video Codec                          : h264 High
-Video Bitrate                        : 36062 bps
-Frame Rate / Avg Frame Rate          : 15.00 fps / 15.00 fps
+Video Bitrate                        : 3612066 bps
+Frame Rate / Avg Frame Rate          : 30.00 fps / 30.00 fps
 Pixel Format                         : yuv420p
 Color Space/Transfer/Primaries/Range : unknown / unknown / unknown / unknown
 Input / Output Format                : mov,mp4,m4a,3gp,3g2,mj2 / unknown output format
 Audio Codec                          : aac LC mono 1 channels
-Audio Bitrate                        : 64591 bps
+Audio Bitrate                        : 127112 bps
 Audio Sample                         : 44100 Hz fltp
 ```
-
-![test_image](samples/sheet.png)
